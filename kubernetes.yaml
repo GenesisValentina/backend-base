@@ -17,13 +17,13 @@ spec:
     spec:
       containers:
       - name: backend-base
-        image: us-central1-docker.pkg.dev/expertis-classroom/docker-repository/backend-base:latest
+        image: us-central1-docker.pkg.dev/expertis-classroom/docker-repository/backend-base:gpina
         imagePullPolicy: Always
         env:
         - name: USERNAME
           valueFrom:
             configMapKeyRef:
-              name: backend-base-cm
+              name: backend-base-gpina
               key: USERNAME
         - name: APIKEY
           valueFrom:
@@ -32,3 +32,44 @@ spec:
               key: APIKEY
       imagePullSecrets:
       - name: regcred
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-base-svc
+  namespace: gpina
+  labels:
+    app: backend-base
+spec:
+  selector:
+    app: backend-base
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3001
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-backend-base
+  namespace: gpina
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - "gpina.devops.cl"
+    secretName: backend-base-tls
+  rules:
+  - host: gpina.devops.cl
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: backend-base-svc
+            port:
+              number: 80
